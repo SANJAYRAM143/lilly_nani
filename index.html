@@ -305,14 +305,14 @@ section#page5 .message p {
 
 .photo-grid{
     display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:12px;
-    margin-top:20px;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:15px;
+    margin-top:24px;
 }
 
 .photo-box{
-    height:150px;
-    border-radius:18px;
+    height:clamp(145px,24vw,230px);
+    border-radius:20px;
     overflow:hidden;
     background:linear-gradient(135deg,#ffdce8,#fff);
     display:flex;
@@ -320,13 +320,85 @@ section#page5 .message p {
     justify-content:center;
     color:#c87591;
     font-size:14px;
-    border:2px dashed #ffb2c9;
+    border:3px solid rgba(255,255,255,.9);
+    box-shadow:0 8px 22px rgba(190,92,130,.14);
+    transition:transform .25s ease, box-shadow .25s ease;
+}
+
+.photo-box:hover{
+    transform:translateY(-4px) scale(1.015);
+    box-shadow:0 13px 28px rgba(190,92,130,.22);
 }
 
 .photo-box img{
     width:100%;
     height:100%;
     object-fit:cover;
+    display:block;
+    cursor:zoom-in;
+}
+
+/* Extra room for a growing memories gallery */
+#page7{
+    overflow-y:auto;
+    align-items:flex-start;
+    padding:65px 18px 30px;
+}
+
+#page7 .card{
+    width:min(100%,900px);
+    max-height:none;
+    overflow:visible;
+    padding:32px 24px;
+}
+
+#page7 .small{
+    font-size:14px;
+}
+
+/* Tap a memory to view it larger */
+.photo-lightbox{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:10000;
+    background:rgba(45,20,34,.88);
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    cursor:zoom-out;
+}
+
+.photo-lightbox.show{
+    display:flex;
+}
+
+.photo-lightbox img{
+    max-width:min(100%,1000px);
+    max-height:85vh;
+    object-fit:contain;
+    border:5px solid white;
+    border-radius:18px;
+    box-shadow:0 15px 50px rgba(0,0,0,.35);
+}
+
+.photo-lightbox .close-lightbox{
+    position:absolute;
+    top:18px;
+    right:20px;
+    width:44px;
+    height:44px;
+    margin:0;
+    padding:0;
+    font-size:25px;
+    line-height:1;
+}
+
+@media(max-width:500px){
+    #page7{padding:62px 12px 24px;}
+    #page7 .card{padding:25px 14px;}
+    .photo-grid{gap:10px;}
+    .photo-box{height:145px;border-radius:15px;}
 }
 
 /* =====================================================
@@ -817,41 +889,55 @@ And finally...{I LOVE YOU NEYYY! 😚💗🌷🫂}
 
     <div class="photo-grid">
 
-        <!-- ============================================
-             ✏️ PHOTO 1
-             Replace "photo1.jpg" with your image
-             ============================================ -->
+        <!-- Upload these image files to the same GitHub folder as index.html.
+             Keep the filenames exactly as shown: photo1.jpg to photo8.jpg. -->
 
         <div class="photo-box">
-            <img src="photo1.jpg"
-                 alt="Our memory 1"
+            <img src="photo1.jpg" alt="Our memory 1" onclick="openPhoto(this.src)"
                  onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 1';">
         </div>
 
-        <!-- PHOTO 2 -->
-
         <div class="photo-box">
-            <img src="photo2.jpg"
-                 alt="Our memory 2"
+            <img src="photo2.jpg" alt="Our memory 2" onclick="openPhoto(this.src)"
                  onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 2';">
         </div>
 
-        <!-- PHOTO 3 -->
-
         <div class="photo-box">
-            <img src="photo3.jpg"
-                 alt="Our memory 3"
+            <img src="photo3.jpg" alt="Our memory 3" onclick="openPhoto(this.src)"
                  onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 3';">
         </div>
 
-        <!-- PHOTO 4 -->
-
         <div class="photo-box">
-            <img src="photo4.jpg"
-                 alt="Our memory 4"
+            <img src="photo4.jpg" alt="Our memory 4" onclick="openPhoto(this.src)"
                  onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 4';">
         </div>
 
+        <!-- EXTRA MEMORIES: photos 5 to 8 -->
+        <div class="photo-box">
+            <img src="photo5.jpg" alt="Our memory 5" onclick="openPhoto(this.src)"
+                 onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 5';">
+        </div>
+
+        <div class="photo-box">
+            <img src="photo6.jpg" alt="Our memory 6" onclick="openPhoto(this.src)"
+                 onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 6';">
+        </div>
+
+        <div class="photo-box">
+            <img src="photo7.jpg" alt="Our memory 7" onclick="openPhoto(this.src)"
+                 onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 7';">
+        </div>
+
+        <div class="photo-box">
+            <img src="photo8.jpg" alt="Our memory 8" onclick="openPhoto(this.src)"
+                 onerror="this.style.display='none';this.parentElement.innerHTML='📸 Memory 8';">
+        </div>
+
+    </div>
+
+    <div class="photo-lightbox" id="photoLightbox" onclick="closePhoto()">
+        <button class="close-lightbox" aria-label="Close photo">×</button>
+        <img id="lightboxImage" src="" alt="Expanded memory" onclick="event.stopPropagation()">
     </div>
 
     <button onclick="nextPage()">
@@ -1160,9 +1246,29 @@ showPage = function(number){
 
 };
 
+
+/* =====================================================
+   📸 MEMORY PHOTO VIEWER
+   ===================================================== */
+function openPhoto(src){
+    const lightbox = document.getElementById("photoLightbox");
+    const image = document.getElementById("lightboxImage");
+    image.src = src;
+    lightbox.classList.add("show");
+}
+
+function closePhoto(){
+    const lightbox = document.getElementById("photoLightbox");
+    const image = document.getElementById("lightboxImage");
+    lightbox.classList.remove("show");
+    image.src = "";
+}
+
+document.addEventListener("keydown", function(event){
+    if(event.key === "Escape") closePhoto();
+});
+
 </script>
 
 </body>
 </html>
-
-
